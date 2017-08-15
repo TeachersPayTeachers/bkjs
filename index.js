@@ -1,39 +1,58 @@
 const app = require('express')();
 const PORT = 3000;
+const BR = '<br />';
 
-let clientConnections = [];
-let idx = 0;
-const data = [
-  'STATS',
-  '==========',
-  '- 4 million active educators',
-  '- 2.5 million resources',
-  '- 350 million dollars earned',
-  '- we\'re profitable!',
-  '- 2 out of 3 teachers in the US are active users',
-  '',
-  'TECH STACK',
-  '===========',
-  '- backend: NodeJS, Elixir Phoenix, PHP',
-  '- frontend: React, ES6, Babel, Webpack',
-  '- ops: Docker, Kubernetes, AWS, Terraform',
-  '- db: RDS MySQL',
-  '',
-  'TEAM',
-  '============',
-  '- 50 engineers',
-  '- super diverse',
-  '- listen first',
-  '- we learn continuously',
-  '- mission driven',
-  '',
-  'CONTACT',
-  '=============',
-  '- email: ryan.s@teacherspayteachers.com',
-  '- twitter: @tpteng',
-  '- blog: engineering.teacherspayteachers.com',
-  '- apply: <a target="_blank" href="https://teacherspayteachers.com/Careers">https://teacherspayteachers.com/Careers</a>'
-];
+/**
+ * a lil helper object to abstract the stats getters
+ */
+const data = (() => {
+  let idx = 0;
+  const stats = [
+    'STATS',
+    '==========',
+    '- 4 million active educators',
+    '- 2.5 million resources',
+    '- 350 million dollars earned',
+    '- we\'re profitable!',
+    '- 2 out of 3 teachers in the US are active users',
+    '',
+    'TECH STACK',
+    '===========',
+    '- backend: NodeJS, Elixir Phoenix, PHP',
+    '- frontend: React, ES6, Babel, Webpack',
+    '- ops: Docker, Kubernetes, AWS, Terraform',
+    '- db: RDS MySQL',
+    '',
+    'TEAM',
+    '============',
+    '- 45 engineers',
+    '- super diverse',
+    '- listen first',
+    '- we learn continuously',
+    '- mission driven',
+    '',
+    'CONTACT',
+    '=============',
+    '- email: <a target="_blank" href="mailto:ryan.s@teacherspayteachers.com">ryan.s@teacherspayteachers.com</a>',
+    '- twitter: <a target="_blank" href="https://twitter.com/tpteng">@tpteng</a>',
+    '- blog: <a target="_blank" href="http://engineering.teacherspayteachers.com">engineering.teacherspayteachers.com</a>',
+    '- apply: <a target="_blank" href="https://teacherspayteachers.com/Careers">teacherspayteachers.com/Careers</a>'
+  ];
+
+  return {
+    next: () => stats.slice(idx, ++idx),
+    agg: () => stats.slice(0, idx),
+    all: () => stats,
+    reset: () => idx = 0,
+    isDone: () => stats.length <= idx
+  };
+})();
+
+/**
+ * keep track of all open client connections so we can broadcast as data is
+ * revealed
+ */
+const connectionPool = new Map();
 
 app.use((req, res, next) => {
   res.writeHead(200, {
@@ -42,48 +61,63 @@ app.use((req, res, next) => {
     connection: 'keep-alive'
   });
 
+  res.write('<head>');
   res.write('<meta name="viewport" content="width=device-width, initial-scale=1">');
   res.write('<style>body { font-family: monospace }</style>');
+
+  // browser needs ~1k to start flushing
+  res.write(new Buffer(Array(1e3).fill('')));
+  res.write('</head>');
   next();
 });
 
 app.get('/', (req, res) => {
-  if (idx + 1 === data.length) {
-    // TODO
-    res.redirect(301, '/all');
-  }
+  connectionPool.set(res);
 
-  req.on('finish', () => {
-    res.end();
-    // TODO:
-    clientConnections.splice(clientConnections.indexOf(res));
-  });
+  const removeConnection =
+    connectionPool.delete.bind(connectionPool, res);
 
-  clientConnections.push(res);
+  req
+    .on('abort', removeConnection) // client aborted
+    .on('aborted', removeConnection); // we aborted
+
+  res
+    .on('close', removeConnection) // connection closed before `res.end`
+    .on('finish', removeConnection); // after `res.end` was called
 
   // send data already revealed
-  res.write(Array(2000).fill(' ').join('') + '<br/>');
-  res.write(data.slice(0, idx).join('<br/>') + '<br/>');
+  const agg = data.agg();
+  if (agg.length) {
+    res.write(agg.join(BR) + BR);
+  }
 
   // reveal one more to all
-  const lastIdx = idx++;
-  clientConnections.forEach((_res) => {
-    _res.write(data.slice(lastIdx, idx).join('') + '<br/>');
+  const last = data.next();
+  const isDone = data.isDone();
+  connectionPool.forEach((_, _res) => {
+    _res.write(last.join('') + BR);
+    isDone && _res.end();
   });
 });
 
+/**
+ * Reveal all data at once. (aka when we eff it up :-0)
+ */
 app.get('/all', (req, res) => {
-  res.write(data.join('<br/>'));
+  res.write(data.all().join(BR));
   res.end();
 });
 
+/**
+ * Start from the beginning
+ */
 app.get('/reset', (req, res) => {
-  idx = 0;
-  clientConnections = [];
+  data.reset();
+  connectionPool.clear();
   res.write('OK');
   res.end();
 });
 
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server is now listening on ${PORT}`);
 });
