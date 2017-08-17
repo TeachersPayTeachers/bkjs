@@ -2,6 +2,34 @@ const app = require('express')();
 const PORT = 3000;
 const BR = '<br />';
 
+const apple = `
+<div style="margin: 100px auto; width: 400px;">
+<pre>
+                       ttttt
+     tt                ttttt                 tt
+    tppt      ttttttt  ttttt   tttttt       tppt
+  t  tpt  tttt          tttt          tttt  tpt  t
+   ttt   pt              tt              tp   ttt
+      ttpt                                tptt
+       tpt                                tpt
+        pt                                tp
+        tt                                tt
+         pt                              tp
+          tt                            tt
+           tt                          tt
+             tt                      tt
+               tt                  tt
+                 ttt    t  t    ttt
+                    tttt    tttt
+
+                      WELCOME!
+
+                Teachers Pay Teachers
+</pre>
+<h1 style="text-align: center">http://bkjs.tpt.life</h1>
+</div>
+`;
+
 /**
  * a lil helper object to abstract the stats getters
  */
@@ -72,8 +100,21 @@ app.use((req, res, next) => {
   next();
 });
 
+const introConnectionPool = new Map();
+
+app.get('/intro', (req, res) => {
+  res.write(apple);
+  introConnectionPool.set(res);
+});
+
 app.get('/', (req, res) => {
   connectionPool.set(res);
+
+  introConnectionPool.forEach((_, _res) => {
+    _res.write('<script>window.location = "/"</script>');
+    _res.end();
+    introConnectionPool.delete(_res);
+  });
 
   const removeConnection =
     connectionPool.delete.bind(connectionPool, res);
