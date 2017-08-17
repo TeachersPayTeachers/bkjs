@@ -11,10 +11,10 @@ const data = (() => {
     'STATS',
     '==========',
     '- 4 million active educators',
-    '- 2.5 million resources',
-    '- 350 million dollars earned',
+    '- 2.7 million resources',
+    '- Over $100 million dollars earned by Teachers Authors in the last year',
     '- we\'re profitable!',
-    '- 2 out of 3 teachers in the US are active users',
+    '- 2 out of 3 teachers in the US used a resource from TpT in the last year',
     '',
     'TECH STACK',
     '===========',
@@ -36,7 +36,8 @@ const data = (() => {
     '- email: <a target="_blank" href="mailto:ryan.s@teacherspayteachers.com">ryan.s@teacherspayteachers.com</a>',
     '- twitter: <a target="_blank" href="https://twitter.com/tpteng">@tpteng</a>',
     '- blog: <a target="_blank" href="http://engineering.teacherspayteachers.com">engineering.teacherspayteachers.com</a>',
-    '- apply: <a target="_blank" href="https://teacherspayteachers.com/Careers">teacherspayteachers.com/Careers</a>'
+    '- apply: <a target="_blank" href="https://teacherspayteachers.com/Careers">teacherspayteachers.com/Careers</a>',
+    '- this code: <a target="_blank" href="https://github.com/TeachersPayTeachers/bkjs">TpT bkjk</a>'
   ];
 
   return {
